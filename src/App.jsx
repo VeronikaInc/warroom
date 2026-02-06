@@ -553,7 +553,7 @@ export default function App() {
   return (
     <div style={{ maxWidth: 480, margin: '0 auto', minHeight: '100vh', background: '#0a0e14', color: '#e8e6e3', position: 'relative' }}>
       <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0, maxWidth: 480, margin: '0 auto', backgroundImage: 'radial-gradient(circle at 50% 0%,#d4a84308 0%,transparent 50%)' }} />
-      <div style={{ position: 'relative', zIndex: 1, height: '100vh', overflow: 'auto', WebkitOverflowScrolling: 'touch' }}>{screens[screen]}</div>
+      <div style={{ position: 'relative', zIndex: 1, height: '100vh', overflow: 'auto', WebkitOverflowScrolling: 'touch', paddingTop: 'env(safe-area-inset-top, 20px)' }}>{screens[screen]}</div>
       <div style={{ position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: 480, zIndex: 100 }}>
         <div style={{ background: 'linear-gradient(180deg,transparent,#0a0e14ee 30%)', paddingTop: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center', background: '#111318f5', backdropFilter: 'blur(20px)', borderTop: '1px solid #1e2028', padding: '10px 4px', paddingBottom: 'calc(10px + env(safe-area-inset-bottom,0px))', margin: '0 8px', borderRadius: '16px 16px 0 0' }}>

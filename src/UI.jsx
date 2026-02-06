@@ -42,7 +42,7 @@ export function Modal({ isOpen, onClose, title, children }) {
           <h3 style={{ fontFamily:"'Orbitron',sans-serif",fontSize:14,color:'#d4a843',letterSpacing:2,margin:0 }}>{title}</h3>
           <button onClick={onClose} style={{ background:'none',border:'none',cursor:'pointer',padding:4 }}><Icon name="x" size={20} color="#6b7280"/></button>
         </div>
-        <div style={{ overflow:'auto',padding:'16px 20px 40px',flex:1,WebkitOverflowScrolling:'touch' }}>{children}</div>
+        <div style={{ overflow:'auto',padding:'16px 20px calc(100px + env(safe-area-inset-bottom, 0px))',flex:1,WebkitOverflowScrolling:'touch' }}>{children}</div>
       </div>
     </div>
   );
