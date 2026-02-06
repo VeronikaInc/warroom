@@ -4,6 +4,7 @@ import Icon from './Icons.jsx';
 export const PC = { CRITICAL:{color:'#ff3b3b',label:'KRİTİK'}, HIGH:{color:'#ff9500',label:'YÜKSEK'}, STANDARD:{color:'#4a9d5b',label:'STANDART'}, LOW:{color:'#6b7280',label:'DÜŞÜK'} };
 export const SC = { ACTIVE:{color:'#4a9d5b',label:'AKTİF'}, PLANNING:{color:'#d4a843',label:'PLANLAMA'}, ON_HOLD:{color:'#ff9500',label:'BEKLEMEDE'}, COMPLETE:{color:'#6b7280',label:'TAMAMLANDI'} };
 export const CC = { IDEA:{color:'#d4a843',label:'FİKİR'}, NOTE:{color:'#4a9d5b',label:'NOT'}, RESEARCH:{color:'#5b8fd4',label:'ARAŞTIRMA'}, CONTACT:{color:'#c44536',label:'İLETİŞİM'} };
+export const MOODS = { GOOD:{color:'#4a9d5b',label:'İYİ',emoji:'🟢'}, NEUTRAL:{color:'#d4a843',label:'NORMAL',emoji:'🟡'}, TOUGH:{color:'#c44536',label:'ZOR GÜN',emoji:'🔴'} };
 
 export const quotes = [
   "Zafer, 'Zafer benimdir' diyebilenindir. — Mustafa Kemal Atatürk",

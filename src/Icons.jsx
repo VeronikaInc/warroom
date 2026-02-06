@@ -27,6 +27,15 @@ const I = {
   arrow: (s,c) => <svg width={s} height={s} viewBox="0 0 24 24" {...p} stroke={c} strokeWidth={2}><line x1={5} y1={12} x2={19} y2={12}/><polyline points="12 5 19 12 12 19"/></svg>,
   download: (s,c) => <svg width={s} height={s} viewBox="0 0 24 24" {...p} stroke={c} strokeWidth={2}><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>,
   upload: (s,c) => <svg width={s} height={s} viewBox="0 0 24 24" {...p} stroke={c} strokeWidth={2}><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>,
+  book: (s,c) => <svg width={s} height={s} viewBox="0 0 24 24" {...p} stroke={c} strokeWidth={2}><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>,
+  eye: (s,c) => <svg width={s} height={s} viewBox="0 0 24 24" {...p} stroke={c} strokeWidth={2}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx={12} cy={12} r={3}/></svg>,
+  eyeOff: (s,c) => <svg width={s} height={s} viewBox="0 0 24 24" {...p} stroke={c} strokeWidth={2}><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1={1} y1={1} x2={23} y2={23}/></svg>,
+  camera: (s,c) => <svg width={s} height={s} viewBox="0 0 24 24" {...p} stroke={c} strokeWidth={2}><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx={12} cy={13} r={4}/></svg>,
+  mic: (s,c) => <svg width={s} height={s} viewBox="0 0 24 24" {...p} stroke={c} strokeWidth={2}><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8"/></svg>,
+  video: (s,c) => <svg width={s} height={s} viewBox="0 0 24 24" {...p} stroke={c} strokeWidth={2}><polygon points="23 7 16 12 23 17 23 7"/><rect x={1} y={5} width={15} height={14} rx={2} ry={2}/></svg>,
+  send: (s,c) => <svg width={s} height={s} viewBox="0 0 24 24" {...p} stroke={c} strokeWidth={2}><line x1={22} y1={2} x2={11} y2={13}/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>,
+  timeline: (s,c) => <svg width={s} height={s} viewBox="0 0 24 24" {...p} stroke={c} strokeWidth={2}><circle cx={12} cy={4} r={2}/><circle cx={12} cy={12} r={2}/><circle cx={12} cy={20} r={2}/><line x1={12} y1={6} x2={12} y2={10}/><line x1={12} y1={14} x2={12} y2={18}/></svg>,
+  chart: (s,c) => <svg width={s} height={s} viewBox="0 0 24 24" {...p} stroke={c} strokeWidth={2}><line x1={18} y1={20} x2={18} y2={10}/><line x1={12} y1={20} x2={12} y2={4}/><line x1={6} y1={20} x2={6} y2={14}/></svg>,
 };
 
 export default function Icon({ name, size = 16, color = 'currentColor' }) {

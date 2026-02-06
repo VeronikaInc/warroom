@@ -6,7 +6,7 @@
  */
 
 const DB_NAME = 'WarRoomDB';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 let db = null;
 
@@ -60,6 +60,17 @@ function openDB() {
         store.createIndex('datetime', 'datetime', { unique: false });
         store.createIndex('dismissed', 'dismissed', { unique: false });
       }
+
+      // Journal tablosu (v2)
+      if (!db.objectStoreNames.contains('journal')) {
+        const store = db.createObjectStore('journal', { keyPath: 'id' });
+        store.createIndex('created_at', 'created_at', { unique: false });
+        store.createIndex('mood', 'mood', { unique: false });
+        store.createIndex('is_debrief', 'is_debrief', { unique: false });
+      }
+
+      // PT migration (v2) - eski kayıtları dönüştürmek için upgrade gerekebilir
+      // Yeni alanlar: title, content, duration (eski: exercise, sets, reps, weight, notes)
     };
 
     req.onsuccess = (e) => {
@@ -242,22 +253,62 @@ export const intl = {
 export const ptDB = {
   async getAll() {
     const all = await getAll('pt');
-    return all.sort((a, b) => b.created_at - a.created_at);
+    // Migration: eski format -> yeni format
+    return all.map(p => {
+      if (p.exercise && !p.title) {
+        // Eski format tespit edildi
+        return {
+          ...p,
+          title: p.exercise,
+          content: p.sets && p.reps ? `${p.sets}x${p.reps}${p.weight ? ' @ ' + p.weight + 'kg' : ''}${p.notes ? ' — ' + p.notes : ''}` : (p.notes || ''),
+          duration: 0
+        };
+      }
+      return p;
+    }).sort((a, b) => b.created_at - a.created_at);
   },
   async add(p) {
     const item = {
       id: gid(),
-      exercise: p.exercise,
-      sets: Number(p.sets) || 0,
-      reps: Number(p.reps) || 0,
-      weight: Number(p.weight) || 0,
-      notes: p.notes || '',
+      title: p.title || '',
+      content: p.content || '',
+      duration: Number(p.duration) || 0,
       created_at: Date.now()
     };
     await put('pt', item);
     return item.id;
   },
   async delete(id) { await del('pt', id); }
+};
+
+// ============ JOURNAL ============
+export const journalDB = {
+  async getAll() {
+    const all = await getAll('journal');
+    return all.sort((a, b) => b.created_at - a.created_at);
+  },
+  async add(j) {
+    const item = {
+      id: gid(),
+      title: j.title || '',
+      content: j.content || '',
+      mood: j.mood || 'NEUTRAL',
+      media: j.media || '[]',
+      is_debrief: j.is_debrief ? 1 : 0,
+      debrief_good: j.debrief_good || '',
+      debrief_improve: j.debrief_improve || '',
+      debrief_tomorrow: j.debrief_tomorrow || '',
+      created_at: Date.now()
+    };
+    await put('journal', item);
+    return item.id;
+  },
+  async update(id, j) {
+    const existing = await getOne('journal', id);
+    if (!existing) return;
+    await put('journal', { ...existing, ...j });
+  },
+  async delete(id) { await del('journal', id); }
 };
 
 // ============ REMINDERS ============
@@ -299,12 +350,13 @@ export async function exportAllData() {
     pt: await getAll('pt'),
     operation_logs: await getAll('operation_logs'),
     reminders: await getAll('reminders'),
+    journal: await getAll('journal'),
     exported_at: Date.now()
   };
 }
 
 export async function importData(data) {
-  const stores = ['operations', 'directives', 'intel', 'pt', 'operation_logs', 'reminders'];
+  const stores = ['operations', 'directives', 'intel', 'pt', 'operation_logs', 'reminders', 'journal'];
   for (const name of stores) {
     if (data[name]) {
       for (const item of data[name]) {
