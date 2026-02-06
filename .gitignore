@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.DS_Store
+*.local
+
+# Android build artifacts (keep the source, ignore outputs)
+android/app/build/
+android/.gradle/
+android/build/
+android/local.properties
+android/.idea/
