@@ -6,7 +6,7 @@
  */
 
 const DB_NAME = 'WarRoomDB';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 let db = null;
 
@@ -61,12 +61,23 @@ function openDB() {
         store.createIndex('dismissed', 'dismissed', { unique: false });
       }
 
-      // Journal tablosu (v2)
+      // Journal tablosu (v2+)
       if (!db.objectStoreNames.contains('journal')) {
         const store = db.createObjectStore('journal', { keyPath: 'id' });
         store.createIndex('created_at', 'created_at', { unique: false });
         store.createIndex('mood', 'mood', { unique: false });
         store.createIndex('is_debrief', 'is_debrief', { unique: false });
+        store.createIndex('energy_level', 'energy_level', { unique: false });
+        store.createIndex('focus_score', 'focus_score', { unique: false });
+      } else {
+        // v3 migration: mevcut journal store'a yeni index'leri ekle
+        const store = e.target.transaction.objectStore('journal');
+        if (!store.indexNames.contains('energy_level')) {
+          store.createIndex('energy_level', 'energy_level', { unique: false });
+        }
+        if (!store.indexNames.contains('focus_score')) {
+          store.createIndex('focus_score', 'focus_score', { unique: false });
+        }
       }
 
       // PT migration (v2) - eski kayıtları dönüştürmek için upgrade gerekebilir
@@ -298,6 +309,10 @@ export const journalDB = {
       debrief_good: j.debrief_good || '',
       debrief_improve: j.debrief_improve || '',
       debrief_tomorrow: j.debrief_tomorrow || '',
+      energy_level: Number(j.energy_level) || 3,
+      focus_score: Number(j.focus_score) || 3,
+      energy_drain: j.energy_drain || '',
+      trigger: j.trigger || '',
       created_at: Date.now()
     };
     await put('journal', item);
@@ -308,7 +323,12 @@ export const journalDB = {
     if (!existing) return;
     await put('journal', { ...existing, ...j });
   },
-  async delete(id) { await del('journal', id); }
+  async delete(id) { await del('journal', id); },
+  async getByDateRange(start, end) {
+    const all = await getAll('journal');
+    return all.filter(j => j.created_at >= start && j.created_at <= end)
+              .sort((a, b) => b.created_at - a.created_at);
+  }
 };
 
 // ============ REMINDERS ============

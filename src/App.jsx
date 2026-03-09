@@ -917,13 +917,15 @@ function Journal({ data, reload }) {
   const recordingTimerRef = useRef(null);
   const [f, sf] = useState({
     title: '', content: '', mood: 'NEUTRAL',
-    is_debrief: false, debrief_good: '', debrief_improve: '', debrief_tomorrow: ''
+    is_debrief: false, debrief_good: '', debrief_improve: '', debrief_tomorrow: '',
+    energy_level: 3, focus_score: 3, energy_drain: '', trigger: ''
   });
 
   const openAdd = (isDebrief = false) => {
     sf({
       title: '', content: '', mood: 'NEUTRAL',
-      is_debrief: isDebrief, debrief_good: '', debrief_improve: '', debrief_tomorrow: ''
+      is_debrief: isDebrief, debrief_good: '', debrief_improve: '', debrief_tomorrow: '',
+      energy_level: 3, focus_score: 3, energy_drain: '', trigger: ''
     });
     setMedia([]);
     setDebrief(isDebrief);
@@ -1037,7 +1039,11 @@ function Journal({ data, reload }) {
     await journalDB.add({
       ...f,
       is_debrief: debrief,
-      media: JSON.stringify(media)
+      media: JSON.stringify(media),
+      energy_level: f.energy_level,
+      focus_score: f.focus_score,
+      energy_drain: f.energy_drain,
+      trigger: f.trigger
     });
     setShow(false);
     setMedia([]);
@@ -1199,6 +1205,39 @@ function Journal({ data, reload }) {
         </div>
 
         <Inp label="BAŞLIK (OPSİYONEL)" value={f.title} onChange={v => sf(x => ({ ...x, title: v }))} placeholder="Günün özeti..." />
+
+        {/* Enerji & Odak Skorları */}
+        {[
+          { label: 'ENERJİ SEVİYESİ', key: 'energy_level' },
+          { label: 'ODAK KALİTESİ', key: 'focus_score' }
+        ].map(({ label, key }) => (
+          <div key={key}>
+            <label style={{ display: 'block', fontSize: 11, color: '#6b7280', marginBottom: 8, fontFamily: "'Orbitron',sans-serif", letterSpacing: 1 }}>{label}</label>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+              {[1, 2, 3, 4, 5].map(n => (
+                <div
+                  key={n}
+                  onClick={() => sf(x => ({ ...x, [key]: n }))}
+                  style={{
+                    width: 32, height: 32, borderRadius: 8, cursor: 'pointer',
+                    background: n <= f[key] ? '#d4a84333' : '#0a0e14',
+                    border: `2px solid ${n <= f[key] ? '#d4a843' : '#1e2028'}`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                  }}
+                >
+                  <span style={{ fontSize: 12, fontFamily: "'Orbitron',sans-serif", color: n <= f[key] ? '#d4a843' : '#6b7280' }}>{n}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+
+        {!debrief && (
+          <>
+            <Inp label="ENERJİ TÜKETİCİ" value={f.energy_drain} onChange={v => sf(x => ({ ...x, energy_drain: v }))} placeholder="Bugün enerjimi ne tüketti?" />
+            <Inp label="TETİKLEYİCİ" value={f.trigger} onChange={v => sf(x => ({ ...x, trigger: v }))} placeholder="Bunu ne tetikledi?" />
+          </>
+        )}
 
         {debrief ? (
           <>
@@ -1397,6 +1436,167 @@ function PT({ data, reload }) {
   );
 }
 
+// ================ INTEL REPORT SCREEN ================
+function IntelReport({ data }) {
+  const now = Date.now();
+  const weekAgo = now - 7 * 864e5;
+  const weekEntries = data.journal.filter(j => j.created_at >= weekAgo);
+
+  const avgEnergy = weekEntries.length
+    ? (weekEntries.reduce((s, j) => s + (Number(j.energy_level) || 3), 0) / weekEntries.length).toFixed(1)
+    : '—';
+  const avgFocus = weekEntries.length
+    ? (weekEntries.reduce((s, j) => s + (Number(j.focus_score) || 3), 0) / weekEntries.length).toFixed(1)
+    : '—';
+  const moodCount = { GOOD: 0, NEUTRAL: 0, TOUGH: 0 };
+  weekEntries.forEach(j => { if (moodCount[j.mood] !== undefined) moodCount[j.mood]++; });
+  const journalDays = [...new Set(weekEntries.map(j => new Date(j.created_at).toDateString()))].length;
+
+  const drainFreq = {};
+  data.journal.forEach(j => {
+    if (!j.energy_drain) return;
+    j.energy_drain.split(',').map(s => s.trim()).filter(Boolean).forEach(d => {
+      drainFreq[d] = (drainFreq[d] || 0) + 1;
+    });
+  });
+  const topDrains = Object.entries(drainFreq).sort((a, b) => b[1] - a[1]).slice(0, 5);
+
+  const last14 = [];
+  for (let i = 13; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const dayStr = d.toDateString();
+    const entry = data.journal.find(j => new Date(j.created_at).toDateString() === dayStr && !j.is_debrief);
+    const shortLabel = d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' }).toUpperCase();
+    last14.push({ dayStr, entry, shortLabel });
+  }
+
+  const debriefs = data.journal.filter(j => j.is_debrief).sort((a, b) => b.created_at - a.created_at);
+
+  return (
+    <div style={{ padding: '0 16px 120px' }}>
+      <div style={{ paddingTop: 20, marginBottom: 24 }}>
+        <h1 style={{ fontFamily: "'Orbitron',sans-serif", fontSize: 20, color: '#e8e6e3', margin: 0, letterSpacing: 1 }}>İSTİHBARAT RAPORU</h1>
+        <div style={{ fontSize: 11, color: '#6b7280', marginTop: 4, fontFamily: "'JetBrains Mono',monospace" }}>PATTERN ANALİZİ</div>
+      </div>
+
+      {/* BÖLÜM A: Haftalık Özet */}
+      <div style={{ background: 'linear-gradient(135deg,#d4a84308,#d4a84303)', border: '1px solid #d4a84320', borderRadius: 16, padding: 16, marginBottom: 16 }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12 }}>
+          <Icon name="chart" size={14} color="#d4a843" />
+          <span style={{ fontFamily: "'Orbitron',sans-serif", fontSize: 10, color: '#d4a843', letterSpacing: 2 }}>HAFTALIK ÖZET</span>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div>
+            <div style={{ fontSize: 9, color: '#6b7280', fontFamily: "'Orbitron',sans-serif", letterSpacing: 1, marginBottom: 4 }}>ORT. ENERJİ</div>
+            <div style={{ fontSize: 28, fontWeight: 800, color: '#d4a843', fontFamily: "'Orbitron',sans-serif" }}>{avgEnergy}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: 9, color: '#6b7280', fontFamily: "'Orbitron',sans-serif", letterSpacing: 1, marginBottom: 4 }}>ORT. ODAK</div>
+            <div style={{ fontSize: 28, fontWeight: 800, color: '#5b8fd4', fontFamily: "'Orbitron',sans-serif" }}>{avgFocus}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: 9, color: '#6b7280', fontFamily: "'Orbitron',sans-serif", letterSpacing: 1, marginBottom: 4 }}>GÜNLÜK YAZMA</div>
+            <div style={{ fontSize: 28, fontWeight: 800, color: '#4a9d5b', fontFamily: "'Orbitron',sans-serif" }}>{journalDays}<span style={{ fontSize: 12, color: '#6b7280' }}>/7</span></div>
+          </div>
+          <div>
+            <div style={{ fontSize: 9, color: '#6b7280', fontFamily: "'Orbitron',sans-serif", letterSpacing: 1, marginBottom: 4 }}>MOOD DAĞILIMI</div>
+            <div style={{ display: 'flex', gap: 4, marginTop: 6, flexWrap: 'wrap' }}>
+              {moodCount.GOOD > 0 && <span style={{ fontSize: 13, color: '#4a9d5b' }}>🟢{moodCount.GOOD}</span>}
+              {moodCount.NEUTRAL > 0 && <span style={{ fontSize: 13, color: '#d4a843' }}>🟡{moodCount.NEUTRAL}</span>}
+              {moodCount.TOUGH > 0 && <span style={{ fontSize: 13, color: '#c44536' }}>🔴{moodCount.TOUGH}</span>}
+              {weekEntries.length === 0 && <span style={{ fontSize: 12, color: '#6b7280' }}>—</span>}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* BÖLÜM B: Enerji Tüketiciler */}
+      <div style={{ background: '#111318', border: '1px solid #1e2028', borderRadius: 16, padding: 16, marginBottom: 16 }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12 }}>
+          <Icon name="alert" size={14} color="#d4a843" />
+          <span style={{ fontFamily: "'Orbitron',sans-serif", fontSize: 10, color: '#d4a843', letterSpacing: 2 }}>ENERJİ TÜKETİCİLER</span>
+        </div>
+        {topDrains.length === 0 ? (
+          <Empty icon="search" title="VERİ YOK" sub={"Günlük girişlerinde enerji tüketici ekledikçe\nburada görünecek."} />
+        ) : (
+          topDrains.map(([drain, count]) => (
+            <div key={drain} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #1e2028' }}>
+              <span style={{ fontSize: 13, color: '#e8e6e3' }}>{drain}</span>
+              <span style={{ fontFamily: "'JetBrains Mono',monospace", color: '#d4a843', fontWeight: 700 }}>{count}x</span>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* BÖLÜM C: 14 Günlük Trend */}
+      <div style={{ background: '#111318', border: '1px solid #1e2028', borderRadius: 16, padding: 16, marginBottom: 16 }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12 }}>
+          <Icon name="timeline" size={14} color="#d4a843" />
+          <span style={{ fontFamily: "'Orbitron',sans-serif", fontSize: 10, color: '#d4a843', letterSpacing: 2 }}>14 GÜNLÜK TREND</span>
+        </div>
+        {last14.map(({ dayStr, entry, shortLabel }) => (
+          <div key={dayStr} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0', opacity: entry ? 1 : 0.3 }}>
+            <span style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 10, color: '#6b7280', minWidth: 44 }}>{shortLabel}</span>
+            <div style={{ width: 12, height: 12, borderRadius: '50%', background: entry ? (MOODS[entry.mood]?.color || '#1e2028') : '#1e2028', flexShrink: 0 }} />
+            <div style={{ display: 'flex', gap: 2 }}>
+              {[1, 2, 3, 4, 5].map(n => (
+                <div key={n} style={{ width: 8, height: 8, borderRadius: 2, background: entry && n <= (entry.energy_level || 0) ? '#d4a843' : '#1e2028' }} />
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 2 }}>
+              {[1, 2, 3, 4, 5].map(n => (
+                <div key={n} style={{ width: 8, height: 8, borderRadius: 2, background: entry && n <= (entry.focus_score || 0) ? '#5b8fd4' : '#1e2028' }} />
+              ))}
+            </div>
+          </div>
+        ))}
+        <div style={{ display: 'flex', gap: 16, marginTop: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <div style={{ width: 8, height: 8, borderRadius: 2, background: '#d4a843' }} />
+            <span style={{ fontSize: 9, color: '#6b7280', fontFamily: "'Orbitron',sans-serif" }}>ENERJİ</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <div style={{ width: 8, height: 8, borderRadius: 2, background: '#5b8fd4' }} />
+            <span style={{ fontSize: 9, color: '#6b7280', fontFamily: "'Orbitron',sans-serif" }}>ODAK</span>
+          </div>
+        </div>
+      </div>
+
+      {/* BÖLÜM D: Debrief Arşivi */}
+      <div style={{ background: '#111318', border: '1px solid #1e2028', borderRadius: 16, padding: 16, marginBottom: 16 }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12 }}>
+          <Icon name="book" size={14} color="#d4a843" />
+          <span style={{ fontFamily: "'Orbitron',sans-serif", fontSize: 10, color: '#d4a843', letterSpacing: 2 }}>DEBRİEF ARŞİVİ</span>
+        </div>
+        {debriefs.length === 0 ? (
+          <Empty icon="book" title="DEBRİEF YOK" sub={"Günlük debrief girişlerin\nburada arşivlenir."} />
+        ) : (
+          debriefs.map(j => (
+            <div key={j.id} style={{ background: '#0a0e14', borderRadius: 12, padding: '12px 14px', marginBottom: 8, border: '1px solid #1e2028', borderLeft: '3px solid #d4a84366' }}>
+              <div style={{ fontSize: 10, color: '#6b7280', fontFamily: "'JetBrains Mono',monospace", marginBottom: 6 }}>
+                {new Date(j.created_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}
+              </div>
+              {j.debrief_tomorrow && (
+                <>
+                  <div style={{ fontSize: 9, color: '#d4a843', fontFamily: "'Orbitron',sans-serif", letterSpacing: 1, marginBottom: 4 }}>YARININ ÖNCELİĞİ</div>
+                  <div style={{ fontSize: 13, color: '#e8e6e3', lineHeight: 1.5, marginBottom: 6 }}>{j.debrief_tomorrow}</div>
+                </>
+              )}
+              {j.debrief_good && (
+                <div style={{ fontSize: 11, color: '#4a9d5b99', marginBottom: 2 }}>✓ {j.debrief_good}</div>
+              )}
+              {j.debrief_improve && (
+                <div style={{ fontSize: 11, color: '#d4a84399' }}>△ {j.debrief_improve}</div>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ================ MAIN APP ================
 export default function App() {
   const [ready, setReady] = useState(false);
@@ -1478,6 +1678,7 @@ export default function App() {
     { key: 'directives', icon: 'diamond', label: 'DİREKTİF' },
     { key: 'intel', icon: 'search', label: 'İSTİHBARAT' },
     { key: 'journal', icon: 'book', label: 'GÜNLÜK' },
+    { key: 'report', icon: 'chart', label: 'RAPOR' },
     { key: 'pt', icon: 'dumbbell', label: 'FİZİKSEL' },
   ];
 
@@ -1487,6 +1688,7 @@ export default function App() {
     directives: <Directives data={data} reload={reload} />,
     intel: <Intel data={data} reload={reload} />,
     journal: <Journal data={data} reload={reload} />,
+    report: <IntelReport data={data} />,
     pt: <PT data={data} reload={reload} />,
   };
 
