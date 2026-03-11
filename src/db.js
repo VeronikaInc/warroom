@@ -6,7 +6,7 @@
  */
 
 const DB_NAME = 'WarRoomDB';
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 
 let db = null;
 
@@ -78,6 +78,11 @@ function openDB() {
         if (!store.indexNames.contains('focus_score')) {
           store.createIndex('focus_score', 'focus_score', { unique: false });
         }
+      }
+
+      // Settings tablosu (v4)
+      if (!db.objectStoreNames.contains('settings')) {
+        db.createObjectStore('settings', { keyPath: 'id' });
       }
 
       // PT migration (v2) - eski kayıtları dönüştürmek için upgrade gerekebilir
@@ -359,6 +364,28 @@ export const rems = {
     if (row) await put('reminders', { ...row, notified: 1 });
   },
   async delete(id) { await del('reminders', id); }
+};
+
+// ============ SETTINGS ============
+const DEFAULT_SETTINGS = {
+  id: 'user_settings',
+  callsign: '',
+  displayName: 'KOMUTAN',
+  theme: 'MILITARY',
+  debriefHour: 22,
+  debriefMinute: 0,
+  notificationsEnabled: true,
+  created_at: Date.now()
+};
+
+export const settingsDB = {
+  async get() {
+    const row = await getOne('settings', 'user_settings');
+    return row || { ...DEFAULT_SETTINGS };
+  },
+  async save(s) {
+    await put('settings', { ...s, id: 'user_settings' });
+  }
 };
 
 // ============ DATA EXPORT / IMPORT ============
