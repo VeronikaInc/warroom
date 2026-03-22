@@ -6,7 +6,7 @@
  */
 
 const DB_NAME = 'WarRoomDB';
-const DB_VERSION = 4;
+const DB_VERSION = 5;
 
 let db = null;
 
@@ -83,6 +83,11 @@ function openDB() {
       // Settings tablosu (v4)
       if (!db.objectStoreNames.contains('settings')) {
         db.createObjectStore('settings', { keyPath: 'id' });
+      }
+
+      // Protocol tablosu (v5)
+      if (!db.objectStoreNames.contains('protocol')) {
+        db.createObjectStore('protocol', { keyPath: 'id' });
       }
 
       // PT migration (v2) - eski kayıtları dönüştürmek için upgrade gerekebilir
@@ -385,6 +390,27 @@ export const settingsDB = {
   },
   async save(s) {
     await put('settings', { ...s, id: 'user_settings' });
+  }
+};
+
+// ============ PROTOCOL ============
+const DEFAULT_PROTOCOL = {
+  id: 'user_protocol',
+  kimlik_beyani: '',
+  kimlik_cipasi: '',
+  dusme_protokolu: '',
+  haftalik_hesap: '',
+  vizyon_cipasi: '',
+  updated_at: 0
+};
+
+export const protocolDB = {
+  async get() {
+    const row = await getOne('protocol', 'user_protocol');
+    return row || { ...DEFAULT_PROTOCOL };
+  },
+  async save(data) {
+    await put('protocol', { ...data, id: 'user_protocol', updated_at: Date.now() });
   }
 };
 

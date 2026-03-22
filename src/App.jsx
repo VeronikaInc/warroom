@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { initDB, ops, opLogs, dirs, intl, ptDB, rems, journalDB, exportAllData, importData, settingsDB } from './db.js';
+import { initDB, ops, opLogs, dirs, intl, ptDB, rems, journalDB, exportAllData, importData, settingsDB, protocolDB } from './db.js';
 import Icon, { priIcon, catIcon } from './Icons.jsx';
 import { Modal, Inp, Btn, Empty, AddBtn, PC, SC, CC, quotes, fd, mt, gr, milDate, MOODS } from './UI.jsx';
 import { THEMES, DEFAULT_THEME } from './themes.js';
@@ -1664,6 +1664,174 @@ function IntelReport({ data, theme }) {
   );
 }
 
+// ================ PROTOKOL SCREEN ================
+function Protokol({ data, theme }) {
+  const th = theme || THEMES[DEFAULT_THEME];
+
+  const [form, setForm] = useState({
+    kimlik_beyani:   data?.kimlik_beyani   || '',
+    kimlik_cipasi:   data?.kimlik_cipasi   || '',
+    dusme_protokolu: data?.dusme_protokolu || '',
+    haftalik_hesap:  data?.haftalik_hesap  || '',
+    vizyon_cipasi:   data?.vizyon_cipasi   || '',
+  });
+  const [editingKimlik, setEditingKimlik] = useState(false);
+  const [editingVizyon, setEditingVizyon] = useState(false);
+  const saveTimer = useRef(null);
+
+  useEffect(() => () => clearTimeout(saveTimer.current), []);
+
+  useEffect(() => {
+    if (data) setForm({
+      kimlik_beyani:   data.kimlik_beyani   || '',
+      kimlik_cipasi:   data.kimlik_cipasi   || '',
+      dusme_protokolu: data.dusme_protokolu || '',
+      haftalik_hesap:  data.haftalik_hesap  || '',
+      vizyon_cipasi:   data.vizyon_cipasi   || '',
+    });
+  }, [data]);
+
+  const update = (field, value) => {
+    const next = { ...form, [field]: value };
+    setForm(next);
+    clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(async () => {
+      await protocolDB.save(next);
+    }, 800);
+  };
+
+  const card = {
+    background: th.bgCard,
+    borderRadius: 14,
+    padding: '14px 16px',
+    border: '1px solid ' + th.border,
+    marginBottom: 12,
+  };
+
+  const sectionLabel = {
+    fontSize: 9,
+    color: th.textMuted,
+    fontFamily: th.fontDisplay,
+    letterSpacing: 3,
+    marginBottom: 10,
+    borderBottom: '1px solid ' + th.border,
+    paddingBottom: 6,
+  };
+
+  const textarea = {
+    width: '100%',
+    background: 'transparent',
+    border: 'none',
+    outline: 'none',
+    color: th.textPrimary,
+    fontSize: 14,
+    lineHeight: 1.6,
+    resize: 'none',
+    fontFamily: 'inherit',
+    boxSizing: 'border-box',
+    minHeight: 72,
+    padding: 0,
+  };
+
+  return (
+    <div style={{ padding: '0 16px 140px' }}>
+      <div style={{ padding: '20px 0 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
+        <Icon name="shield" size={18} color={th.accent} />
+        <div>
+          <div style={{ fontFamily: th.fontDisplay, fontSize: 16, color: th.accent, letterSpacing: 3, fontWeight: 700 }}>PROTOKOL</div>
+          <div style={{ fontSize: 10, color: th.textMuted, letterSpacing: 1, marginTop: 2 }}>Kimlik & Vizyon Protokolü</div>
+        </div>
+      </div>
+
+      <div style={sectionLabel}>KİMLİK BEYANI</div>
+      <div style={{ ...card, marginBottom: 20, borderColor: th.accent + '44' }}>
+        {editingKimlik ? (
+          <textarea
+            autoFocus
+            value={form.kimlik_beyani}
+            onChange={e => update('kimlik_beyani', e.target.value)}
+            onBlur={() => setEditingKimlik(false)}
+            placeholder="Kimliğini tanımla..."
+            style={{ ...textarea, minHeight: 56 }}
+          />
+        ) : (
+          <div onClick={() => setEditingKimlik(true)} style={{ cursor: 'text' }}>
+            {form.kimlik_beyani
+              ? <div style={{ fontSize: 16, color: th.textPrimary, lineHeight: 1.6, fontWeight: 600 }}>{form.kimlik_beyani}</div>
+              : <div style={{ fontSize: 14, color: th.textMuted, fontStyle: 'italic' }}>Kimliğini tanımla... (dokunarak düzenle)</div>
+            }
+          </div>
+        )}
+      </div>
+
+      <div style={{ ...sectionLabel, marginTop: 0 }}>PROTOKOLLER</div>
+
+      <div style={card}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+          <Icon name="target" size={14} color={th.accent} />
+          <div style={{ fontFamily: th.fontDisplay, fontSize: 11, color: th.accent, letterSpacing: 2 }}>KİMLİK ÇIPASI</div>
+        </div>
+        <div style={{ fontSize: 11, color: th.textMuted, marginBottom: 10, lineHeight: 1.5 }}>Günlük soru: Bugün kim olmayı seçiyorum?</div>
+        <textarea
+          value={form.kimlik_cipasi}
+          onChange={e => update('kimlik_cipasi', e.target.value)}
+          placeholder="Notlarını buraya yaz..."
+          style={textarea}
+        />
+      </div>
+
+      <div style={card}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+          <Icon name="alert" size={14} color={th.accent} />
+          <div style={{ fontFamily: th.fontDisplay, fontSize: 11, color: th.accent, letterSpacing: 2 }}>DÜŞME PROTOKOLÜ</div>
+        </div>
+        <div style={{ fontSize: 11, color: th.textMuted, marginBottom: 10, lineHeight: 1.5 }}>Düştüğünde ne yaparsın? Adım adım yaz.</div>
+        <textarea
+          value={form.dusme_protokolu}
+          onChange={e => update('dusme_protokolu', e.target.value)}
+          placeholder="Kalkış protokolünü yaz..."
+          style={textarea}
+        />
+      </div>
+
+      <div style={{ ...card, marginBottom: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+          <Icon name="eye" size={14} color={th.accent} />
+          <div style={{ fontFamily: th.fontDisplay, fontSize: 11, color: th.accent, letterSpacing: 2 }}>HAFTALIK HESAP</div>
+        </div>
+        <div style={{ fontSize: 11, color: th.textMuted, marginBottom: 10, lineHeight: 1.5 }}>Haftalık gözlem: Bu hafta hangi savaşı kazandım / kaybettim?</div>
+        <textarea
+          value={form.haftalik_hesap}
+          onChange={e => update('haftalik_hesap', e.target.value)}
+          placeholder="Bu haftanın muhasebesi..."
+          style={textarea}
+        />
+      </div>
+
+      <div style={{ ...sectionLabel, marginTop: 8 }}>VİZYON ÇIPASI</div>
+      <div style={{ ...card, borderColor: th.accent + '66', textAlign: 'center', padding: '24px 20px' }}>
+        {editingVizyon ? (
+          <textarea
+            autoFocus
+            value={form.vizyon_cipasi}
+            onChange={e => update('vizyon_cipasi', e.target.value)}
+            onBlur={() => setEditingVizyon(false)}
+            placeholder="Vizyonunu yaz..."
+            style={{ ...textarea, textAlign: 'center', fontSize: 16, minHeight: 56 }}
+          />
+        ) : (
+          <div onClick={() => setEditingVizyon(true)} style={{ cursor: 'text' }}>
+            {form.vizyon_cipasi
+              ? <div style={{ fontSize: 20, color: th.accent, lineHeight: 1.5, fontWeight: 700, letterSpacing: 1 }}>{form.vizyon_cipasi}</div>
+              : <div style={{ fontSize: 14, color: th.textMuted, fontStyle: 'italic' }}>Vizyonunu yaz... (dokunarak düzenle)</div>
+            }
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ================ SETTINGS SCREEN ================
 function Settings({ theme, settings, onSave, onClose }) {
   const t = theme || THEMES[DEFAULT_THEME];
@@ -1869,17 +2037,19 @@ export default function App() {
   const [data, setData] = useState({ operations: [], directives: [], intel: [], pt: [], reminders: [], journal: [] });
   const [ver, setVer] = useState(0);
   const [settings, setSettings] = useState(null);
+  const [protocol, setProtocol] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
 
   const theme = settings ? (THEMES[settings.theme] || THEMES[DEFAULT_THEME]) : THEMES[DEFAULT_THEME];
 
   const reload = useCallback(async () => {
-    const [o, d, i, p, r, j, s] = await Promise.all([
-      ops.getAll(), dirs.getAll(), intl.getAll(), ptDB.getAll(), rems.getAll(), journalDB.getAll(), settingsDB.get()
+    const [o, d, i, p, r, j, s, proto] = await Promise.all([
+      ops.getAll(), dirs.getAll(), intl.getAll(), ptDB.getAll(), rems.getAll(), journalDB.getAll(), settingsDB.get(), protocolDB.get()
     ]);
     setData({ operations: o, directives: d, intel: i, pt: p, reminders: r, journal: j });
     setSettings(s);
+    setProtocol(proto);
     setVer(v => v + 1);
   }, []);
 
@@ -1963,6 +2133,7 @@ export default function App() {
     { key: 'operations', icon: 'hex', label: 'OPERASYON' },
     { key: 'intel', icon: 'search', label: 'İSTİHBARAT' },
     { key: 'pt', icon: 'dumbbell', label: 'FİZİKSEL' },
+    { key: 'protokol', icon: 'shield', label: 'PROTOKOL' },
     { key: '_settings', icon: 'settings', label: 'AYARLAR' },
   ];
 
@@ -1976,6 +2147,7 @@ export default function App() {
     journal: <Journal data={data} reload={reload} theme={theme} />,
     report: <IntelReport data={data} theme={theme} />,
     pt: <PT data={data} reload={reload} theme={theme} />,
+    protokol: <Protokol data={protocol} theme={theme} />,
   };
 
   const handleMoreNav = (key) => {
@@ -2014,7 +2186,7 @@ export default function App() {
           padding: '8px 4px',
           boxShadow: `0 -4px 30px ${theme.accentGlow}`
         }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)' }}>
             {moreNav.map(item => (
               <button key={item.key} onClick={() => handleMoreNav(item.key)} style={{
                 background: 'none', border: 'none', cursor: 'pointer',
